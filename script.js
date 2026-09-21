@@ -3,7 +3,62 @@
 // ==========================================
 
 const GOOGLE_SCRIPT_URL =
-    "https://script.google.com/macros/s/AKfycbx5JArpGjRFW23PJ8zAJhc_0CShXyzhbVIGFYecc_FQIl6qDxrILEpd_TlyN1bqMfCegQ/exec";
+    "https://script.google.com/macros/s/AKfycbx1BkE2-BXOMYEppCBv1XoupyBUnLxAormNY-55_1qFkJDMMhM12nBH4uiDCpqVG5Zq-A/exec";
+
+
+// ==========================================
+// MAIN PAGE URL
+// ==========================================
+
+const MAIN_PAGE_URL = "index.html";
+
+
+// ==========================================
+// DISCORD SERVER URL
+// ==========================================
+
+const DISCORD_URL =
+    "https://discord.gg/fHHMKfqKj";
+
+
+// ==========================================
+// RANK VALUES
+// ==========================================
+
+const rankValues = {
+
+    "Bronze 3": 1,
+    "Bronze 2": 2,
+    "Bronze 1": 3,
+
+    "Silver 3": 4,
+    "Silver 2": 5,
+    "Silver 1": 6,
+
+    "Gold 3": 7,
+    "Gold 2": 8,
+    "Gold 1": 9,
+
+    "Platinum 3": 10,
+    "Platinum 2": 11,
+    "Platinum 1": 12,
+
+    "Diamond 3": 13,
+    "Diamond 2": 14,
+    "Diamond 1": 15,
+
+    "Grandmaster 3": 16,
+    "Grandmaster 2": 17,
+    "Grandmaster 1": 18,
+
+    "Celestial 3": 19,
+    "Celestial 2": 20,
+    "Celestial 1": 21,
+
+    "Eternity ": 22,
+
+    "One Above All ": 23
+};
 
 
 // ==========================================
@@ -22,187 +77,328 @@ const errorMessage =
 const successMessage =
     document.getElementById("success");
 
-const logoInput =
-    document.getElementById("teamLogo");
-
-
-// ==========================================
-// LOGO VALIDATION
-// ==========================================
-
-logoInput.addEventListener("change", function () {
-
-    const file = this.files[0];
-
-    if (!file) {
-        return;
-    }
-
-    const maxSize =
-        10 * 1024 * 1024;
-
-    if (file.size > maxSize) {
-
-        alert(
-            "Team logo must be less than 10 MB."
-        );
-
-        this.value = "";
-
-        return;
-    }
-
-
-    if (!file.type.startsWith("image/")) {
-
-        alert(
-            "Please upload an image file."
-        );
-
-        this.value = "";
-
-        return;
-    }
-
-});
-
 
 // ==========================================
 // FORM SUBMISSION
 // ==========================================
 
-form.addEventListener(
-    "submit",
-    async function (event) {
+if (form) {
 
-        event.preventDefault();
+    form.addEventListener(
+        "submit",
+        async function (event) {
 
-
-        // ------------------------------
-        // VALIDATE FORM
-        // ------------------------------
-
-        if (!form.checkValidity()) {
-
-            form.reportValidity();
-
-            return;
-        }
+            event.preventDefault();
 
 
-        // ------------------------------
-        // BUTTON STATE
-        // ------------------------------
+            // ======================================
+            // VALIDATE FORM
+            // ======================================
 
-        submitButton.disabled = true;
+            if (!form.checkValidity()) {
 
-        submitButton.innerText =
-            "REGISTERING...";
+                form.reportValidity();
 
-        errorMessage.style.display =
-            "none";
-
-
-        // ------------------------------
-        // COLLECT FORM DATA
-        // ------------------------------
-
-        const formData =
-            new FormData(form);
-
-        const data = {};
+                return;
+            }
 
 
-        formData.forEach(
-            (value, key) => {
+            // ======================================
+            // BUTTON LOADING STATE
+            // ======================================
 
-                if (value instanceof File) {
+            if (submitButton) {
 
-                    if (value.name) {
+                submitButton.disabled = true;
+
+                submitButton.innerText =
+                    "REGISTERING...";
+
+            }
+
+
+            if (errorMessage) {
+
+                errorMessage.style.display =
+                    "none";
+
+            }
+
+
+            // ======================================
+            // GET FORM DATA
+            // ======================================
+
+            const formData =
+                new FormData(form);
+
+            const data = {};
+
+
+            formData.forEach(
+                function (value, key) {
+
+                    if (value instanceof File) {
 
                         data[key] =
-                            value.name;
+                            value.name || "";
 
                     } else {
 
-                        data[key] = "";
+                        data[key] =
+                            value;
 
                     }
 
-                } else {
+                }
+            );
 
-                    data[key] = value;
+
+            // ======================================
+            // CALCULATE TEAM AVERAGE
+            // 6 MAIN PLAYERS ONLY
+            // ======================================
+
+            const playerRanks = [
+
+                data.player1Rank,
+                data.player2Rank,
+                data.player3Rank,
+                data.player4Rank,
+                data.player5Rank,
+                data.player6Rank
+
+            ];
+
+
+            let totalRank = 0;
+
+            let validPlayers = 0;
+
+
+            playerRanks.forEach(
+                function (rank) {
+
+                    if (
+                        rank &&
+                        rankValues[rank]
+                    ) {
+
+                        totalRank +=
+                            rankValues[rank];
+
+                        validPlayers++;
+
+                    }
+
+                }
+            );
+
+
+            let teamAverageRank = 0;
+
+
+            if (validPlayers > 0) {
+
+                teamAverageRank =
+                    totalRank / validPlayers;
+
+            }
+
+
+            // ======================================
+            // ROUND AVERAGE TO 2 DECIMAL PLACES
+            // ======================================
+
+            teamAverageRank =
+                Number(
+                    teamAverageRank.toFixed(2)
+                );
+
+
+            // ======================================
+            // ADD AVERAGE TO DATA
+            // ======================================
+
+            data.teamAverageRank =
+                teamAverageRank;
+
+
+            // ======================================
+            // SEND TO GOOGLE SHEETS
+            // ======================================
+
+            try {
+
+                await fetch(
+                    GOOGLE_SCRIPT_URL,
+                    {
+                        method: "POST",
+
+                        mode: "no-cors",
+
+                        headers: {
+                            "Content-Type":
+                                "text/plain;charset=utf-8"
+                        },
+
+                        body:
+                            JSON.stringify(data)
+                    }
+                );
+
+
+                // ==================================
+                // SHOW SUCCESS
+                // ==================================
+
+                form.style.display =
+                    "none";
+
+
+                if (successMessage) {
+
+                    successMessage.style.display =
+                        "block";
+
+
+                    // ==================================
+                    // BACK TO MAIN PAGE
+                    // ==================================
+
+                    const backLink =
+                        document.createElement("a");
+
+                    backLink.href =
+                        MAIN_PAGE_URL;
+
+                    backLink.innerText =
+                        "← BACK TO MAIN PAGE";
+
+                    backLink.style.display =
+                        "inline-block";
+
+                    backLink.style.marginTop =
+                        "25px";
+
+                    backLink.style.color =
+                        "#8b5cff";
+
+                    backLink.style.fontSize =
+                        "18px";
+
+                    backLink.style.fontWeight =
+                        "700";
+
+                    backLink.style.textDecoration =
+                        "none";
+
+                    backLink.style.letterSpacing =
+                        "1px";
+
+
+                    // ==================================
+                    // DISCORD LINK
+                    // ==================================
+
+                    const discordLink =
+                        document.createElement("a");
+
+                    discordLink.href =
+                        DISCORD_URL;
+
+                    discordLink.innerText =
+                        "JOIN OUR DISCORD";
+
+                    discordLink.target =
+                        "_blank";
+
+                    discordLink.rel =
+                        "noopener noreferrer";
+
+                    discordLink.style.display =
+                        "inline-block";
+
+                    discordLink.style.marginTop =
+                        "15px";
+
+                    discordLink.style.marginLeft =
+                        "15px";
+
+                    discordLink.style.color =
+                        "#5865F2";
+
+                    discordLink.style.fontSize =
+                        "18px";
+
+                    discordLink.style.fontWeight =
+                        "700";
+
+                    discordLink.style.textDecoration =
+                        "none";
+
+                    discordLink.style.letterSpacing =
+                        "1px";
+
+
+                    // ==================================
+                    // ADD LINKS
+                    // ==================================
+
+                    successMessage.appendChild(
+                        backLink
+                    );
+
+                    successMessage.appendChild(
+                        discordLink
+                    );
+
+                }
+
+
+                // ==================================
+                // SCROLL TOP
+                // ==================================
+
+                window.scrollTo({
+                    top: 0,
+                    behavior: "smooth"
+                });
+
+
+            } catch (error) {
+
+                console.error(
+                    "Registration error:",
+                    error
+                );
+
+
+                // ==================================
+                // SHOW ERROR
+                // ==================================
+
+                if (errorMessage) {
+
+                    errorMessage.style.display =
+                        "block";
+
+                }
+
+
+                if (submitButton) {
+
+                    submitButton.disabled =
+                        false;
+
+                    submitButton.innerText =
+                        "⚡ ASSEMBLE TEAM";
 
                 }
 
             }
-        );
-
-
-        // ==================================
-        // SEND TO GOOGLE SHEETS
-        // ==================================
-
-        try {
-
-            await fetch(
-                GOOGLE_SCRIPT_URL,
-                {
-                    method: "POST",
-
-                    mode: "no-cors",
-
-                    headers: {
-                        "Content-Type":
-                            "text/plain;charset=utf-8"
-                    },
-
-                    body:
-                        JSON.stringify(data)
-                }
-            );
-
-
-            // ------------------------------
-            // SHOW SUCCESS
-            // ------------------------------
-
-            form.style.display =
-                "none";
-
-            successMessage.style.display =
-                "block";
-
-
-            window.scrollTo({
-                top: 0,
-                behavior: "smooth"
-            });
-
-
-        } catch (error) {
-
-            console.error(
-                "Registration error:",
-                error
-            );
-
-
-            // ------------------------------
-            // SHOW ERROR
-            // ------------------------------
-
-            errorMessage.style.display =
-                "block";
-
-
-            submitButton.disabled =
-                false;
-
-            submitButton.innerText =
-                "⚡ ASSEMBLE TEAM";
 
         }
+    );
 
-    }
-);
+}
